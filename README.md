@@ -2,7 +2,7 @@
 
 ## Saylor et al. (2017)
 
-## Saylor, Joel E., Jessica C. Jordan, Kurt E. Sundell, Xiaoming Wang, Shiqi Wang, and Tao Deng. "Topographic growth of the Jishi Shan and its impact on basin and hydrology evolution, NE Tibetan Plateau." Basin Research 30, no. 3 (2018): 544-563.
+## Saylor, J.E., Jordan, J.C., Sundell, K.E., Wang, X., Wang, S. and Deng, T., 2017. Topographic growth of the Jishi Shan and its impact on basin and hydrology evolution, NE Tibetan Plateau. Basin Research, 30(3), pp.544-563.
 
 ### Run in MATLAB
 
