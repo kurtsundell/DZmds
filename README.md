@@ -2,6 +2,8 @@
 
 ## Saylor et al. (2017)
 
+## Saylor, Joel E., Jessica C. Jordan, Kurt E. Sundell, Xiaoming Wang, Shiqi Wang, and Tao Deng. "Topographic growth of the Jishi Shan and its impact on basin and hydrology evolution, NE Tibetan Plateau." Basin Research 30, no. 3 (2018): 544-563.
+
 ### Run in MATLAB
 
 To run DZmds in MATLAB open the DZmds.m file and run it.
