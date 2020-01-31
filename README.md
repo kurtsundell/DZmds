@@ -4,7 +4,7 @@
 
 ### Run in MATLAB
 
-To run DZmds in MATLAB open the DZnmf.m file and run it.
+To run DZmds in MATLAB open the DZmds.m file and run it.
 
 ### Run without MATLAB
 
