@@ -1,4 +1,4 @@
-function hn=arrow3(p1,p2,s,w,h,ip,alpha,beta)
+ function hn=arrow3(p1,p2,s,w,h,ip,alpha,beta)
 % ARROW3 (R13)
 %   ARROW3(P1,P2) draws lines from P1 to P2 with directional arrowheads.
 %   P1 and P2 are either nx2 or nx3 matrices.  Each row of P1 is an
@@ -105,12 +105,6 @@ function hn=arrow3(p1,p2,s,w,h,ip,alpha,beta)
 %   BETA (default = 0.4) is a scalar that controls the relative
 %   brightness of light and dark color shades, ranging between 0 (no
 %   contrast) and 1 (maximum contrast).
-%
-%   Plotting lines with a single color, linestyle, and linewidth is
-%   faster than plotting lines with multiple colors and/or linestyles.
-%   Plotting lines with multiple linewidths is slower still.  ARROW3
-%   chooses renderers that produce the best screen images; exported
-%   or printed plots may benefit from different choices.
 %
 %   ARROW3(P1,P2,S,W,H,'cone',...) will plot cones with bases centered
 %   on P1 in the direction given by P2.  In this instance, P2 is
@@ -270,12 +264,17 @@ function hn=arrow3(p1,p2,s,w,h,ip,alpha,beta)
 %
 %     See also (arrow3_examples.html), (arrow3_messes_up_my_plots.html).
 
-%   Copyright(c)2002-2013 Version 5.15
-%     Tom Davis (tdavis@metzgerwillard.com)
+%   Copyright(c)2002-2020 Version 5.18.1
+%     Tom Davis (tdavis@earthsurvey.us)
 %     Jeff Chang
 
 %   Revision History:
 %
+%     08/08/20 - Address ColorOrder, LineStyleOrder property changes
+%                in R2019b. (TD)
+%     06/19/20 - Remove deprecated zbuffer renderer. (TD)
+%     11/02/19 - Address ColorOrder property changes in R2019b. (TD)
+%     08/28/18 - Use explicit EdgeColor. (TD)
 %     01/15/13 - Use AppData instead of UserData. (TD)
 %     07/27/11 - Added animation example. (TD)
 %     05/13/09 - Corrected spelling errors (TD)
@@ -392,7 +391,7 @@ if strcmp(get(ax,'nextplot'),'add') && strcmp(get(fig,'nextplot'),'add')
        (ys && ~all([p1(:,2);p2(:,2)]>0))
        error('Nonpositive log data not supported')
     end
-  else mode='manual';
+  else, mode='manual';
     if strcmp(get(ax,'WarpToFill'),'on')
       warning('Arrow3:WarpToFill',['Stretch-to-fill scaling not ',...
         'supported;\nuse DASPECT or PBASPECT before calling ARROW3.']);
@@ -400,28 +399,29 @@ if strcmp(get(ax,'nextplot'),'add') && strcmp(get(fig,'nextplot'),'add')
   end
   set(ax,'XLimMode',mode,'YLimMode',mode,'ZLimMode',mode,...
     'CLimMode','manual');
-else restore=0; cla reset; xys=0; set(fig,'nextplot','add');
-  if c1==2, azel=[0,90]; else azel=[-37.5,30]; end
+else, restore=0; cla reset; xys=0; set(fig,'nextplot','add');
+  set(ax,'LineStyleOrder',L);
+  if c1==2, azel=[0,90]; else, azel=[-37.5,30]; end
   setappdata(ax,'Arrow3',[]);
   set(ax,'nextplot','add','View',azel);
 end
 
 %-------------------------------------------------------------------------
 % Style Control
-[vc,cn]=LocalColorTable(0); prefix=''; OneColor=0;
+[vc,cn]=LocalColorTable(0); prefix='';
 if nargin<3, [c,ls,lw]=LocalValidateCLSW;% default color, linestyle/width
 else 
   [c,ls,lw]=LocalValidateCLSW(s);
   if length(c)>1, if sum('_^'==c(1)), prefix=c(1); end, c=c(2); end
   if c=='x'                              % random named color (less white)
-    [ignore,i]=sort(rand(1,23)); c=cn(i,:);        %#ok
+    [~,i]=sort(rand(1,23)); c=cn(i,:);
   elseif c=='o'                                    % ColorOrder
-    if length(ColorOrder)
+    if ~isempty(ColorOrder)
       [c,failed]=LocalColorMap(lower(ColorOrder),vc,cn,beta);
       if failed, ColorOrderWarning=['Invalid ColorOrder ',...
         'variable, current ColorOrder property will be used'];
         warning('Arrow3:ColorOrder',ColorOrderWarning)
-      else C=c;
+      else, C=c;
       end
     end, c=C;
   elseif c=='|', map=get(fig,'colormap');          % magnitude coloring
@@ -434,18 +434,23 @@ else
   end
 end
 if length(c)==1                                    % single color
-  c=LocalColorMap([prefix,c],vc,cn,beta); OneColor=1;
+  c=LocalColorMap([prefix,c],vc,cn,beta);
 end
 set(ax,'ColorOrder',c); c=LocalRepmat(c,[ceil(n/size(c,1)),1]);
-if ls~='*', set(ax,'LineStyleOrder',ls); end       % LineStyleOrder
+if ls~='*'                                         % LineStyleOrder
+  set(ax,'LineStyleOrder',ls);
+end
+ls=get(ax,'LineStyleOrder');
+ls=LocalRepmat(cellstr(ls),[ceil(n/size(ls,1)),1]);
 if lw=='/'                                         % LineWidthOrder
-  if length(LineWidthOrder)
-    lw=LocalRepmat(LineWidthOrder(:),[ceil(n/length(LineWidthOrder)),1]);
-  else lw=0.5; LineWidthOrderWarning=['Undefined LineWidthOrder, ',...
+  if ~isempty(LineWidthOrder)
+    lw=LineWidthOrder;
+  else, lw=0.5; LineWidthOrderWarning=['Undefined LineWidthOrder, ',...
     'default width (0.5) will be used'];
     warning('Arrow3:LineWidthOrder',LineWidthOrderWarning)
   end
 end
+lw=LocalRepmat(lw,[ceil(n/length(lw)),1]);
 if nargin<4 || isempty(w), w=1; end                % width
 w=LocalRepmat(abs(w(:)),[ceil(n/length(w)),1]);
 if nargin<5 || isempty(h), h=3*w; end              % height
@@ -453,7 +458,7 @@ h=LocalRepmat(abs(h(:)),[ceil(n/length(h)),1]);
 if nargin>5 && ~isempty(ip) && ~cone               % ip
   ip=LocalRepmat(ip(:),[ceil(n/length(ip)),1]);
   i=find(ip==0); ip(i)=w(i);
-else ip=-ones(n,1);
+else, ip=-ones(n,1);
 end
 if nargin<7 || isempty(alpha), alpha=1; end
 a=LocalRepmat(alpha(:),[ceil(n/length(alpha)),1]); % FaceAlpha
@@ -476,34 +481,21 @@ if xys
   dx=xr(2)-xr(1); dy=yr(2)-yr(1);
   q=q*diag([1/dx,1/dy,1]);
   q1=q(1:n,:); q2=q(n+1:end,:);
-else xs=0; ys=0; dx=0; dy=0; xr=0; yr=0;
+else, xs=0; ys=0; dx=0; dy=0; xr=0; yr=0;
 end
 
 %-------------------------------------------------------------------------
 % Line
+set(ax,'DefaultLineTag','arrow3');
 if ~cone
-  set(ax,'DefaultLineTag','arrow3');
-  if length(lw)==1
-    if lw>0
-      if OneColor && ls(end)~='*' && n>1 % single color, linestyle/width
-        P=zeros(3*n,3); i=1:n;
-        P(3*i-2,:)=p1(i,:); P(3*i-1,:)=p2(i,:); P(3*i,1)=NaN;
-        H1=plot3(P(:,1),P(:,2),P(:,3),'LineWidth',lw);
-      else                               % single linewidth
-        H1=plot3([p1(:,1),p2(:,1)]',[p1(:,2),p2(:,2)]',...
-          [p1(:,3),p2(:,3)]','LineWidth',lw);
-      end
-    else H1=[];
-    end
-  else                                   % use LineWidthOrder
-    ls=LocalRepmat(cellstr(L),[ceil(n/size(L,1)),1]);
-    H1=Zeros;
-    for i=1:n
+  H1=Zeros;
+  for i=1:n
+    if lw(i)
       H1(i)=plot3([p1(i,1),p2(i,1)],[p1(i,2),p2(i,2)],...
         [p1(i,3),p2(i,3)],ls{i},'Color',c(i,:),'LineWidth',lw(i));
     end
   end
-else                                     % cone plot
+else                                               % cone plot
   P=zeros(3*n,3); i=1:n;
   P(3*i-2,:)=p1(i,:); P(3*i-1,:)=p1(i,:); P(3*i,1)=NaN;
   H1=plot3(P(:,1),P(:,2),P(:,3));
@@ -515,7 +507,7 @@ if ~restore, axis tight, end
 ar=get(ax,'DataAspectRatio'); ar=sqrt(3)*ar/norm(ar);
 set(ax,'DataAspectRatioMode','manual');
 if xys, sf=1;
-else xr=get(ax,'xlim'); yr=get(ax,'ylim'); zr=get(ax,'zlim');
+else, xr=get(ax,'xlim'); yr=get(ax,'ylim'); zr=get(ax,'zlim');
   sf=norm(diff([xr;yr;zr],1,2)./ar')/72;
 end
 
@@ -543,12 +535,12 @@ U=U./LocalRepmat(N,[1,3]);                         % new x direction
 V=[W(:,2).*U(:,3)-W(:,3).*U(:,2),...               % new y direction
   W(:,3).*U(:,1)-W(:,1).*U(:,3),...
   W(:,1).*U(:,2)-W(:,2).*U(:,1)];
-
 m=20;                               % surface grid spacing
 set(ax,'DefaultSurfaceTag','arrow3','DefaultSurfaceEdgeColor','none');
 r=[0;1]; theta=(0:m)/m*2*pi; Ones=ones(1,m+1);
 x=r*cos(theta); y=r*sin(theta); z=r*Ones;
 G=surface(x/2,y/2,z); dar=diag(ar);
+set(G,'EdgeColor','none');
 X=get(G,'XData'); Y=get(G,'YData'); Z=get(G,'ZData');
 H2=Zeros; [j,k]=size(X);
 for i=1:n                           % translate, rotate, and scale
@@ -568,6 +560,7 @@ if any(ip>0)
   theta=(-m:2:m)/m*pi; phi=(-m:2:m)'/m*pi/2; cosphi=cos(phi);
   x=cosphi*cos(theta); y=cosphi*sin(theta); z=sin(phi)*Ones;
   G=surface(x*ar(1)/2,y*ar(2)/2,z*ar(3)/2);
+  set(G,'EdgeColor','none');
   X=get(G,'XData'); Y=get(G,'YData'); Z=get(G,'ZData');
   H3=zeros(n,1);
   for i=1:n                                        % translate
@@ -578,7 +571,7 @@ if any(ip>0)
         x,y,z,a(i),c(i,:),H3(i),m+1,m+1);
     end
   end, delete(G);
-else H3=[];
+else, H3=[];
 end
 
 %-------------------------------------------------------------------------
@@ -591,8 +584,8 @@ else
   set(ax,'nextplot','replace');
 end
 azel=get(ax,'view');
-if abs(azel(2))==90, renderer='ZBuffer'; else renderer='OpenGL'; c1=3; end
-set(fig,'Renderer',renderer);
+if abs(azel(2))==90, c1=2; else, c1=3; end
+set(fig,'Renderer','OpenGL');
 set(ax,'LineStyleOrder',L,'ColorOrder',C,'DefaultLineTag',LT,...
   'DefaultSurfaceTag',ST,'DefaultSurfaceEdgeColor',EC,...
   'xlim',xr,'ylim',yr,'zlim',zr,'clim',get(ax,'CLim'));
@@ -634,9 +627,9 @@ end
 set(ax,'ColorOrder',c);                            % update surfaces
 ColorOrder=[];
 if strcmp(get(ax,'tag'),'Arrow3ConePlot')
-     H=arrow3(p1,p2,'o' ,w,h,'cone',a);            % update cones
-else H=arrow3(p1,p2,'o0',w,h,    ip,a);
-end, H=[H1(:);H(:)];
+      H=arrow3(p1,p2,'o' ,w,h,'cone',a);           % update cones
+else, H=arrow3(p1,p2,'o0',w,h,    ip,a);
+end,  H=[H1(:);H(:)];
 set(ax,'nextplot','replace');
 
 %-------------------------------------------------------------------------
@@ -725,7 +718,7 @@ while 1
     cc=cn(vc==c(i+1),:); gamma=beta;
     if c(i)=='_', gamma=-beta; end
     C(j,:)=LocalBrighten(cc,gamma); i=i+2;
-  else C(j,:)=cn(vc==c(i),:); i=i+1;
+  else, C(j,:)=cn(vc==c(i),:); i=i+1;
   end
   if i>n, break, end, j=j+1;
 end
@@ -748,7 +741,7 @@ end
 % Repmat
 function B=LocalRepmat(A,siz)
 if length(A)==1, B(prod(siz))=A; B(:)=A; B=reshape(B,siz);
-else [m,n]=size(A); mind=(1:m)'; nind=(1:n)';
+else, [m,n]=size(A); mind=(1:m)'; nind=(1:n)';
   mind=mind(:,ones(1,siz(1))); nind=nind(:,ones(1,siz(2)));
   B=A(mind,nind);
 end
@@ -776,30 +769,30 @@ end
 %-------------------------------------------------------------------------
 % Generate valid value for color, linestyle and linewidth
 function [c,ls,lw]=LocalValidateCLSW(s)
-if nargin<1, c='k'; ls='-'; lw=0.5;
+if nargin<1 || isempty(s), c='k'; ls='-'; lw=0.5;
 else
   % identify linestyle
-  if findstr(s,'--'), ls='--'; s=strrep(s,'--','');
-  elseif findstr(s,'-.'), ls='-.'; s=strrep(s,'-.','');
-  elseif findstr(s,'-'), ls='-'; s=strrep(s,'-','');
-  elseif findstr(s,':'), ls=':'; s=strrep(s,':','');
-  elseif findstr(s,'*'), ls='*'; s=strrep(s,'*','');
-  else ls='-';
+  if contains(s,'--'), ls='--'; s=strrep(s,'--','');
+  elseif contains(s,'-.'), ls='-.'; s=strrep(s,'-.','');
+  elseif contains(s,'-'), ls='-'; s=strrep(s,'-','');
+  elseif contains(s,':'), ls=':'; s=strrep(s,':','');
+  elseif contains(s,'*'), ls='*'; s=strrep(s,'*','');
+  else, ls='-';
   end
 
   % identify linewidth
   tmp=double(s);
   tmp=find(tmp>45 & tmp<58);
-  if length(tmp)
-    if any(s(tmp)=='/'), lw='/'; else lw=str2double(s(tmp)); end
+  if ~isempty(tmp)
+    if any(s(tmp)=='/'), lw='/'; else, lw=str2double(s(tmp)); end
     s(tmp)='';
-  else lw=0.5;
+  else, lw=0.5;
   end
 
   % identify color
-  if length(s), s=lower(s);
+  if ~isempty(s), s=lower(s);
     if length(s)>1, c=s(1:2);
-    else c=s(1); end
-  else c='k';
+    else, c=s(1); end
+  else, c='k';
   end
 end
