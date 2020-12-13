@@ -761,14 +761,14 @@ f = figure;
 MDSplot=handles.MDSplot;
 fig_axes=copyobj(MDSplot,f);
 if dim_in>2
-    set(gca,'Units', 'normalized', 'outerposition', [0.15 0.15 0.65 0.65]);
+    set(gca,'Units', 'normalized', 'outerposition', [0.15 0.15 0.65 0.65], 'DefaultFigureRenderer', 'painters');
 else
-    set(gca,'Units', 'normalized', 'outerposition', [0 0 1 1]);
+    set(gca,'Units', 'normalized', 'outerposition', [0 0 1 1], 'DefaultFigureRenderer', 'painters');
 end
 
 
 g=figure;
-set(gca,'FontUnits','normalized');
+set(gca,'FontUnits','normalized', 'DefaultFigureRenderer', 'painters');
 fsize = get(gca,'FontSize')/4;
 set(gca,'FontUnits','points');
 colours = colormap(jet((nsamples)));
